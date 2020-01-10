@@ -309,7 +309,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+// import axios from 'axios'
+import api from '../api'
 
 export default {
   props: {
@@ -365,8 +366,8 @@ export default {
       default () {
         return {
           sort: 'sort',
-          page: 'page',
-          perPage: 'per_page'
+          page: 'page[number]',
+          perPage: 'page[size]'
         }
       }
     },
@@ -722,14 +723,20 @@ export default {
       this.httpOptions['params'] = this.getAppendParams( this.getAllQueryParams() )
 
       return this.fetch(this.apiUrl, this.httpOptions).then(
-          success,
-          failed
+          success
       ).catch(() => failed())
+
+      // return api.get(this.apiUrl, this.httpOptions).then(
+      //   success
+      // ).catch(function(error) {
+      //   console.log(error)
+      // })
     },
     fetch (apiUrl, httpOptions) {
       return this.httpFetch
           ? this.httpFetch(apiUrl, httpOptions)
-          : axios[this.httpMethod](apiUrl, httpOptions)
+          : api[this.httpMethod](apiUrl, httpOptions)
+      // return api(apiUrl, httpOptions)
     },
     loadSuccess (response) {
       this.fireEvent('load-success', response)
@@ -833,7 +840,13 @@ export default {
           ? this.sortOrder[i].field
           : this.sortOrder[i].sortField;
 
-        result += fieldName + '|' + this.sortOrder[i].direction + ((i+1) < this.sortOrder.length ? ',' : '');
+        if(this.sortOrder[i].direction === 'desc') {
+          result += '-' + fieldName + ((i+1) < this.sortOrder.length ? ',' : '');
+        } else {
+
+          // result += fieldName + '|' + this.sortOrder[i].direction + ((i+1) < this.sortOrder.length ? ',' : '');
+          result += fieldName + ((i+1) < this.sortOrder.length ? ',' : '');
+        }
       }
       return result;
     },

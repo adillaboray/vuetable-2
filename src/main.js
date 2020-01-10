@@ -3,7 +3,7 @@ import Vuetable from './components/Vuetable.vue'
 import VuetablePagination from './components/VuetablePagination.vue'
 import VuetablePaginationDropdown from './components/VuetablePaginationDropdown.vue'
 import VuetablePaginationInfo from './components/VuetablePaginationInfo.vue'
-import axios from 'axios'
+// import axios from 'axios'
 
 let E_SERVER_ERROR = 'Error communicating with the server'
 
@@ -100,6 +100,7 @@ Vue.component('settings-modal', {
         <div class="field">
           <label>Per Page:</label>
           <select class="ui simple dropdown" v-model="$parent.perPage">
+            <option :value="5">5</option>
             <option :value="10">10</option>
             <option :value="15">15</option>
             <option :value="20">20</option>
@@ -202,14 +203,6 @@ let tableColumns = [
     width: '150px'
   },
   {
-    name: 'email',
-    title: '<i class="mail outline icon"></i> Email',
-    sortField: 'email',
-    width: '200px',
-    dataClass: "vuetable-clip-text",
-    visible: true
-  },
-  {
     name: 'nickname',
     title: (nameOnly = false) => {
       return nameOnly
@@ -220,6 +213,15 @@ let tableColumns = [
     callback: 'allCap',
     width: '120px'
   },
+  {
+    name: 'email',
+    title: '<i class="mail outline icon"></i> Email',
+    sortField: 'email',
+    width: '200px',
+    dataClass: "vuetable-clip-text",
+    visible: true
+  },
+  
   {
     name: 'birthdate',
     title: (nameOnly = false) => {
@@ -261,7 +263,7 @@ let vm = new Vue({
   data: {
     loading: '',
     searchFor: '',
-    moreParams: { aa: 1111, bb: 222 },
+    moreParams: {},
     fields: tableColumns,
     tableHeight: '600px',
     vuetableFields: false,
@@ -271,7 +273,7 @@ let vm = new Vue({
     }],
     multiSort: true,
     paginationComponent: 'vuetable-pagination',
-    perPage: 10,
+    perPage: 5,
     paginationInfoTemplate: 'Showing record: {from} to {to} from {total} item(s)',
     lang: lang,
   },
@@ -291,14 +293,14 @@ let vm = new Vue({
     transform (data) {
       let transformed = {}
       transformed.pagination = {
-        total: data.total,
-        per_page: data.per_page,
-        current_page: data.current_page,
-        last_page: data.last_page,
-        next_page_url: data.next_page_url,
-        prev_page_url: data.prev_page_url,
-        from: data.from,
-        to: data.to
+        total: data.meta.page.total,
+        per_page: data.meta.page['per-page'],
+        current_page: data.meta.page['current-page'],
+        last_page: data.meta.page['last-page'],
+        next_page_url: data.links.next,
+        prev_page_url: data.links.last,
+        from: data.meta.page.from,
+        to: data.meta.page.to
       }
 
       transformed.data = []
@@ -306,13 +308,13 @@ let vm = new Vue({
       for (let i = 0; i < data.length; i++) {
         transformed['data'].push({
           id: data[i].id,
-          name: data[i].name,
-          nickname: data[i].nickname,
-          email: data[i].email,
-          age: data[i].age,
-          birthdate: data[i].birthdate,
-          gender: data[i].gender,
-          address: data[i].address.line1 + ' ' + data[i].address.line2 + ' ' + data[i].address.zipcode
+          name: data[i].attributes.name,
+          nickname: data[i].attributes.nickname,
+          email: data[i].attributes.email,
+          age: data[i].attributes.age,
+          birthdate: data[i].attributes['birth-date'],
+          gender: data[i].attributes.gender,
+          // address: data[i].attributes.address.line1 + ' ' + data[i].address.line2 + ' ' + data[i].address.zipcode
         })
       }
 
@@ -342,7 +344,7 @@ let vm = new Vue({
       return moment(value, 'YYYY-MM-DD').format(fmt)
     },
     gender (value) {
-      return value === 'M'
+      return value === 'male'
         ? '<span class="ui teal label"><i class="male icon"></i>Male</span>'
         : '<span class="ui pink label"><i class="female icon"></i>Female</span>'
     },
@@ -355,7 +357,12 @@ let vm = new Vue({
       ].join('')
     },
     setFilter () {
-      this.moreParams['filter'] = this.searchFor
+      if(this.searchFor == '') {
+        this.moreParams = {}
+      } else {
+        this.moreParams['filter[name]'] = this.searchFor
+      }
+
       this.$nextTick(function() {
         this.$refs.vuetable.refresh()
       })
@@ -418,8 +425,8 @@ let vm = new Vue({
       let data = response.data.data
       if (this.searchFor !== '') {
         for (let n in data) {
-          data[n].name = this.highlight(this.searchFor, data[n].name)
-          data[n].email = this.highlight(this.searchFor, data[n].email)
+          data[n].attributes.name = this.highlight(this.searchFor, data[n].attributes.name)
+          // data[n].attributes.email = this.highlight(this.searchFor, data[n].attributes.email)
         }
       }
     },
